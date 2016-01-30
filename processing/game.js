@@ -9,7 +9,6 @@ var game = {
             spinSpeed: 0.003,
             spinDirection: false,
             theta: 0,
-
             radius: 20,
             speed: {
                 x: 0.1,
@@ -34,7 +33,7 @@ var game = {
         mouseX: 0,
         mouseY: 0,
         clicked: false,
-
+        drawPlayer: 0,
         keys: {
             W: false,
             A: false,
@@ -46,6 +45,7 @@ var game = {
     init: function(processing) {
         processing.smooth();
         processing.ellipseMode(processing.CENTER);
+        processing.colorMode(processing.RGB, 256);
 
         game.engine.firstTick = game._now();
         game.engine.currentTick = game._now();
@@ -59,13 +59,23 @@ var game = {
     },
 
     tick: function(processing) {
-        if (game.engine.currentTick - game.engine.firstTick < 30000) {
+        if (game.engine.currentTick - game.engine.firstTick < 10000) {
             game.engine.lastTick = game.engine.currentTick;
             game.engine.currentTick = game._now();
             game.engine.interval = game.engine.currentTick - game.engine.lastTick;
 
             game.clearScreen(processing);
             game.drawPlayer(processing, game.engine.counter, 400);
+        }
+    },
+
+    fixTheta: function(theta) {
+        if (theta < 0) {
+            return game.fixTheta(theta + 2 * Math.PI);
+        } else if (theta > 2 * Math.PI) {
+            return game.fixTheta(theta - 2 * Math.PI);
+        } else {
+            return theta;
         }
     },
 
@@ -98,15 +108,34 @@ var game = {
         processing.stroke(255, 30, 0);
         processing.fill(100, 80, 70);
 
-        processing.ellipse(player.x, player.y, radius * 2, radius * 2);
+        if (game.engine.clicked) {
+            processing.ellipse(player.x, player.y, radius * 2, radius * 2);
+        }
 
-        processing.stroke(30, 255, 0);
-        processing.fill(20, 30, 150);
+        player.theta = game.fixTheta(player.theta + (player.spinDirection ? -1.0 : 1.0) * player.spinSpeed * game.engine.interval);
 
-        player.theta = player.theta + (player.spinDirection ? 1.0 : -1.0) * player.spinSpeed * game.engine.interval;
-        processing.ellipse(player.x + Math.cos(player.theta) * radius * 2,
-                           player.y + Math.sin(player.theta) * radius * 2,
-                           radius * 0.2, radius * 0.2);
+        var thetas = [player.theta,
+                      player.theta + Math.PI/3,
+                      player.theta + Math.PI/3 * 2,
+                      player.theta + Math.PI,
+                      player.theta + Math.PI/3 * 4,
+                      player.theta + Math.PI/3 * 5];
+
+        processing.fill(255, 255, 255);
+
+        processing.colorMode(processing.HSB, 1.0);
+        for (var i = 0; i < thetas.length; i = i + 1) {
+            var theta = game.fixTheta(thetas[i]);
+
+            var angle = theta / (2 * Math.PI)
+
+            processing.stroke(angle, 1.0, 1.0);
+
+            processing.ellipse(player.x + Math.cos(theta) * radius * 2,
+                               player.y + Math.sin(theta) * radius * 2,
+                               radius * 0.2, radius * 0.2);
+        }
+        processing.colorMode(processing.RGB, 256);
     },
 
     clearScreen: function(processing) {
