@@ -1,0 +1,71 @@
+<html>
+<head>
+    <script src="libs/processing-1.4.1.js"></script>
+    <script src="libs/jquery-2.0.3.js"></script>
+    <script src="libs/underscore-1.5.2.js"></script>
+    <script src="processing/game.js"></script>
+</head>
+<body style="margin:0; padding:0;">
+    <canvas id="game_canvas" width="1440" height="900" style="cursor: crosshair; margin:0; padding:0;"></canvas>
+    <script type="text/javascript">
+        var canvas = document.getElementById("game_canvas");
+
+        canvas.width = document.body.clientWidth;
+        canvas.height = document.body.clientHeight;
+
+        var inited = false;
+
+        function sketchProc(processing) {
+            processing.draw = function() {
+                if (!inited) {
+                    game.init(processing);
+                    inited = true;
+                }
+
+                game.tick(processing);
+            };
+        }
+
+        function processKeyChange(isKeyUp, eventData) {
+            var ev = eventData || event;
+            if (ev.keyCode == 87) {
+                game.engine.keys.W = isKeyUp
+            }
+            if (ev.keyCode == 65) {
+                game.engine.keys.A = isKeyUp
+            }
+            if (ev.keyCode == 83) {
+                game.engine.keys.S = isKeyUp
+            }
+            if (ev.keyCode == 68) {
+                game.engine.keys.D = isKeyUp
+            }
+        }
+
+        $(document).bind("mousemove", function(event) {
+            game.engine.mouseX = event.pageX;
+            game.engine.mouseY = event.pageY;
+        });
+
+        $(document).bind("mousedown", function(event) {
+            game.engine.clicked = true;
+        });
+
+        $(document).bind("mouseup", function(event) {
+            game.engine.clicked = false;
+        });
+
+        $(document).bind("keyup", function(event) {
+            processKeyChange(false, event);
+        });
+
+        $(document).bind("keydown", function(event) {
+            processKeyChange(true, event);
+        });
+
+        $(document).ready(function () {
+            var p = new Processing(canvas, sketchProc);
+        });
+    </script>
+</body>
+</html>
