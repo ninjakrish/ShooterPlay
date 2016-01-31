@@ -1,15 +1,18 @@
 var game = {
     constants: {
     },
-
     engine: {
-      player: {
+       objects: {
+          player: {
           xMax: 0,
           yMax: 0,
           x: 0,
-          y 0,
-        }
-      }
+          y: 0,
+
+    },
+  },
+
+
         lastTick: 0,
         firstTick: 0,
         interval: 0,
@@ -23,17 +26,17 @@ var game = {
             A: false,
             S: false,
             D: false
-        }
+        },
     },
 
     init: function(processing) {
         game.engine.lastTick = game._now();
         game.engine.firstTick =game._now();
 
-        game.engine.xMax = document.body.clientWidth;
-        game.engine.yMax = document.body.clientHeight;
-        game.engine.player.x = game.engine.player.xMax / 2
-        game.engine.player.y = game.engine.player.yMax / 2
+        game.engine.objects.player.xMax = document.body.clientWidth;
+        game.engine.objects.player.yMax = document.body.clientHeight;
+        game.engine.objects.player.x = game.engine.objects.player.xMax / 2
+        game.engine.objects.player.y = game.engine.objects.player.yMax / 2
 
     },
 
@@ -41,7 +44,7 @@ var game = {
       game.clearScreen(processing);
       processing.stroke(50, 200, 50);
       processing.fill(60, 80, 90)
-      processing.triangle(30, 75, 58, 20, 86, 75);
+      processing.triangle( 30, 75, 58, 20, 86, 75);
 
     },
 
