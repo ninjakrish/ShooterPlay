@@ -1,3 +1,4 @@
+// TODO: use lodash
 var game = {
     constants: {
         hypotenuse45: 0.70710,
@@ -18,14 +19,19 @@ var game = {
     },
 
     player: {
-        positionX: 0,
-        positionY: 0,
+        position: {
+            x: 0,
+            y: 0
+        },
         lives: 0,
         health: 0
     },
 
     engine: {
-        lastTick: 0,
+        firstTick: 0,
+        previousTick: 0,
+        currentTick: 0,
+        tickLength: 0,
 
         xMax: 0,
         yMax: 0,
@@ -39,14 +45,7 @@ var game = {
             A: false,
             S: false,
             D: false
-        }
-    },
-
-    state: {
-        positionX: 0,
-        positionY: 0,
-        lives: 0,
-        health: 0
+        },
     },
 
     objects: {
@@ -55,55 +54,66 @@ var game = {
     },
 
     init: function(processing) {
-        game.engine.lastTick = game._now();
+        var now = game._now();
+        game.engine.firstTick = now;
+        game.engine.currentTick = now;
 
         game.engine.xMax = document.body.clientWidth;
         game.engine.yMax = document.body.clientHeight;
 
-        game.player.positionX = processing.width / 2;
-        game.player.positionY = processing.height / 2;
+        game.player.position.x = processing.width / 2;
+        game.player.position.y = processing.height / 2;
         game.player.health = 100;
         game.player.lives = 3;
-
-        game.engine.lastTick = game._now();
     },
 
     tick: function(processing) {
         game._processChanges();
 
         game._drawScene(processing);
+
+        game._reportStatistics();
+    },
+
+    _reportStatistics: function() {
     },
 
     _processChanges: function() {
         var now = game._now();
-        var tickLength = now - game.engine.lastTick;
-        game.engine.lastTick = now;
+        game.engine.now = now;
+        game.engine.previousTick = game.engine.currentTick;
+        game.engine.currentTick = now;
+        game.engine.tickLength = now - game.engine.previousTick;
 
         game._spawnEnemies();
 
-        game._handleBullets(tickLength);
+        game._handleBullets();
 
-        game._calculatePlayerLocation(tickLength);
+        game._calculatePlayerLocation();
     },
 
     _spawnEnemies: function() {
         var random = Math.random();
         if (random < game.constants.enemySpawnFrequency) {
-            var positionX = Math.random() * game.engine.xMax;
-            var positionY = Math.random() * game.engine.yMax;
+            var x = Math.random() * game.engine.xMax;
+            var y = Math.random() * game.engine.yMax;
 
             var newEnemy = {
-                positionX: positionX,
-                positionY: positionY
+                velocity: { x: 0, y: 0 }
+                position: {
+                    x: newX,
+                    y: newY,
+                    old: { newX, newY }
+                }
             };
 
             game.objects.enemies.push(newEnemy);
         }
     },
 
-    _handleBullets: function(tickLength) {
-        game._collisionDetect(tickLength);
-        game._moveBullets(tickLength);
+    _handleBullets: function() {
+        game._collisionDetect();
+        game._moveBullets();
         game._removeBullets();
 
         if (game.engine.clicked) {
@@ -112,33 +122,39 @@ var game = {
     },
 
     _collisionDetect: function() {
-        _.each(game.objects.bullets, function(bullet) {
-            _.each(game.objects.enemies, function(bullet) {
-                bullet.positionX += tickLength * bullet.velocityX;
-                bullet.positionY += tickLength * bullet.velocityY;
+        var doCollide = function(bullet, enemy) {
+            return false;
+        }
+
+        game.objects.bullets = _.filter(game.objects.bullets, function(bullet) {
+            var lives = true;
+            game.objects.enemies = _.filter(game.objects.enemies, function(enemy) {
+                lives = !doCollide(bullet, enemy);
+                return lives;
             });
+            return lives;
         });
     },
 
     _removeBullets: function() {
         game.objects.bullets = _.filter(game.objects.bullets, function(bullet) {
-            return bullet.positionX >= 0 || bullet.positionX <= game.engine.xMax ||
-                   bullet.positionY >= 0 || bullet.positionY <= game.engine.yMax;
+            return bullet.position.x >= 0 || bullet.position.x <= game.engine.xMax ||
+                   bullet.position.y >= 0 || bullet.position.y <= game.engine.yMax;
         });
     },
 
-    _moveBullets: function(tickLength) {
+    _moveBullets: function() {
         _.each(game.objects.bullets, function(bullet) {
-            bullet.positionX += tickLength * bullet.velocityX;
-            bullet.positionY += tickLength * bullet.velocityY;
+            bullet.position.x += game.engine.tickLength * bullet.velocity.x;
+            bullet.position.y += game.engine.tickLength * bullet.velocity.y;
         });
     },
 
     _fireBullet: function() {
         var speed = game.constants.machineGunBulletSpeed;
 
-        var dx = game.engine.mouseX - game.player.positionX;
-        var dy = game.engine.mouseY - game.player.positionY;
+        var dx = game.engine.mouseX - game.player.position.x;
+        var dy = game.engine.mouseY - game.player.position.y;
 
         var random = Math.random() * Math.random();
         var negated = Math.random() < 0.5;
@@ -178,27 +194,35 @@ var game = {
             }
         }
 
-        var velocityX = speed * xLength;
-        var velocityY = speed * yLength;
+        var velocity.x = speed * xLength;
+        var velocity.y = speed * yLength;
 
-        var positionX = game.player.positionX + (game.constants.playerSize * xLength);
-        var positionY = game.player.positionY + (game.constants.playerSize * yLength);
+        var position.x = game.player.position.x + (game.constants.playerSize * xLength);
+        var position.y = game.player.position.y + (game.constants.playerSize * yLength);
 
         var newBullet = {
-            positionX: positionX,
-            positionY: positionY,
+            position: {
+                x: position.x,
+                y: position.y
+                old: {
+                    x: game.player.position.x,
+                    y: game.player.position.y
+                }
+            }
 
-            velocityX: velocityX,
-            velocityY: velocityY
+            velocity: {
+                x: velocity.x,
+                y: velocity.y
+            }
         }
 
         game.objects.bullets.push(newBullet);
     },
 
-    _calculatePlayerLocation: function(tickLength) {
+    _calculatePlayerLocation: function() {
         var xDir = 0;
         var yDir = 0;
-        var expectedMovement = game.constants.playerSpeed * tickLength;
+        var expectedMovement = game.constants.playerSpeed * game.engine.tickLength;
 
         if (game.engine.keys.W) {
             yDir -= expectedMovement;
@@ -219,11 +243,11 @@ var game = {
             yDir *= game.constants.hypotenuse45;
         }
 
-        game.player.positionX += xDir;
-        game.player.positionX = Math.max(game.constants.playerSize/2, Math.min(game.engine.xMax - game.constants.playerSize/2, game.player.positionX));
+        game.player.position.x += xDir;
+        game.player.position.x = Math.max(game.constants.playerSize/2, Math.min(game.engine.xMax - game.constants.playerSize/2, game.player.position.x));
 
-        game.player.positionY += yDir;
-        game.player.positionY = Math.max(game.constants.playerSize/2, Math.min(game.engine.yMax - game.constants.playerSize/2, game.player.positionY));
+        game.player.position.y += yDir;
+        game.player.position.y = Math.max(game.constants.playerSize/2, Math.min(game.engine.yMax - game.constants.playerSize/2, game.player.position.y));
     },
 
     _drawScene: function(processing) {
@@ -246,7 +270,7 @@ var game = {
         var size = game.constants.enemySize;
 
         _.each(game.objects.enemies, function(enemy) {
-            processing.ellipse(enemy.positionX, enemy.positionY, size, size);
+            processing.ellipse(enemy.position.x, enemy.position.y, size, size);
         });
     },
 
@@ -257,7 +281,7 @@ var game = {
         var size = game.constants.machineGunBulletSize;
 
         _.each(game.objects.bullets, function(bullet) {
-            processing.ellipse(bullet.positionX, bullet.positionY, size, size);
+            processing.ellipse(bullet.position.x, bullet.position.y, size, size);
         });
     },
 
@@ -267,7 +291,7 @@ var game = {
 
         var size = game.constants.playerSize;
 
-        processing.ellipse(game.player.positionX, game.player.positionY, size, size);
+        processing.ellipse(game.player.position.x, game.player.position.y, size, size);
     },
 
     _drawReticle: function(processing) {
