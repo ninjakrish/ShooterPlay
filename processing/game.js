@@ -1,4 +1,10 @@
 // TODO: use lodash
+// TODO: semicolon rules in JS
+
+var emptyFrame = {
+    hits: []
+}
+
 var game = {
     constants: {
         hypotenuse45: 0.70710,
@@ -48,6 +54,8 @@ var game = {
         },
     },
 
+    frame: emptyFrame,
+
     objects: {
         enemies: [],
         bullets: []
@@ -68,10 +76,10 @@ var game = {
     },
 
     tick: function(processing) {
+        game.frame = emptyFrame;
+
         game._processChanges();
-
         game._drawScene(processing);
-
         game._reportStatistics();
     },
 
@@ -95,15 +103,18 @@ var game = {
     _spawnEnemies: function() {
         var random = Math.random();
         if (random < game.constants.enemySpawnFrequency) {
-            var x = Math.random() * game.engine.xMax;
-            var y = Math.random() * game.engine.yMax;
+            var newX = Math.random() * game.engine.xMax;
+            var newY = Math.random() * game.engine.yMax;
 
             var newEnemy = {
-                velocity: { x: 0, y: 0 }
+                velocity: { x: 0, y: 0 },
                 position: {
                     x: newX,
                     y: newY,
-                    old: { newX, newY }
+                    old: {
+                        x: newX,
+                        y: newY
+                    }
                 }
             };
 
@@ -112,8 +123,9 @@ var game = {
     },
 
     _handleBullets: function() {
-        game._collisionDetect();
         game._moveBullets();
+        game._collisionDetect();
+        game._realizeCollisions();
         game._removeBullets();
 
         if (game.engine.clicked) {
@@ -121,18 +133,40 @@ var game = {
         }
     },
 
+    _realizeCollisions: function() {
+        game.objects.bullets = _.filter(game.objects.bullets, function(bullet) {
+            return ! _.some(game.frame.hits, function(hit) {
+                if (hit.bullet == bullet)
+                    return true;
+                return false;
+            });
+        });
+        game.objects.enemies = _.filter(game.objects.enemies, function(enemy) {
+            return ! _.some(game.frame.hits, function(hit) {
+                if (hit.enemy == enemy)
+                    return true;
+                return false;
+            });
+        });
+    },
+
     _collisionDetect: function() {
         var doCollide = function(bullet, enemy) {
-            return false;
+            var enemyRadius = game.constants.enemySize / 2;
+            // TODO fix this rudimentary nonsense - circle not box
+            return bullet.position.x < enemy.position.x + enemyRadius &&
+                   bullet.position.x > enemy.position.x - enemyRadius &&
+                   bullet.position.y < enemy.position.y + enemyRadius &&
+                   bullet.position.y > enemy.position.y - enemyRadius;
         }
 
-        game.objects.bullets = _.filter(game.objects.bullets, function(bullet) {
-            var lives = true;
-            game.objects.enemies = _.filter(game.objects.enemies, function(enemy) {
-                lives = !doCollide(bullet, enemy);
-                return lives;
+        _.each(game.objects.enemies, function(enemy) {
+            _.each(game.objects.bullets, function(bullet) {
+                var hit = doCollide(bullet, enemy);
+                if (hit) {
+                    game.frame.hits.push({bullet: bullet, enemy: enemy});
+                }
             });
-            return lives;
         });
     },
 
@@ -145,6 +179,8 @@ var game = {
 
     _moveBullets: function() {
         _.each(game.objects.bullets, function(bullet) {
+            bullet.position.old.x = bullet.position.x;
+            bullet.position.old.y = bullet.position.y;
             bullet.position.x += game.engine.tickLength * bullet.velocity.x;
             bullet.position.y += game.engine.tickLength * bullet.velocity.y;
         });
@@ -194,21 +230,25 @@ var game = {
             }
         }
 
-        var velocity.x = speed * xLength;
-        var velocity.y = speed * yLength;
+        var velocity = {
+            x: speed * xLength,
+            y: speed * yLength
+        }
 
-        var position.x = game.player.position.x + (game.constants.playerSize * xLength);
-        var position.y = game.player.position.y + (game.constants.playerSize * yLength);
+        var position = {
+            x: game.player.position.x + (game.constants.playerSize * xLength),
+            y: game.player.position.y + (game.constants.playerSize * yLength)
+        }
 
         var newBullet = {
             position: {
                 x: position.x,
-                y: position.y
+                y: position.y,
                 old: {
                     x: game.player.position.x,
                     y: game.player.position.y
                 }
-            }
+            },
 
             velocity: {
                 x: velocity.x,
