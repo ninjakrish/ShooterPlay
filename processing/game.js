@@ -43,8 +43,12 @@ var game = {
     tick: function(processing) {
       game.clearScreen(processing);
       processing.stroke(50, 200, 50);
-      processing.fill(60, 80, 90)
-      processing.triangle( 30, 75, 58, 20, 86, 75);
+      processing.fill(60, 80, 90);
+      processing.rect(732, 489.5, 55, 55);
+    },
+
+    WASD: function(processing)  {
+      if(game.engine.keys.W = true) {game.engine.objects.player.y + 100};
 
     },
 
