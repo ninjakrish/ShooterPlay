@@ -42,14 +42,30 @@ var game = {
 
     tick: function(processing) {
       game.clearScreen(processing);
+
+      if(game.engine.keys.W == true) {
+          game.engine.objects.player.y = game.engine.objects.player.y - 1;
+      }
+      if(game.engine.keys.A == true) {
+          game.engine.objects.player.x = game.engine.objects.player.x - 1;
+      }
+      if(game.engine.keys.S == true) {
+        game.engine.objects.player.y = game.engine.objects.player.y + 1;
+      }
+      if(game.engine.keys.D == true) {
+          game.engine.objects.player.x = game.engine.objects.player.x + 1;
+      }
       processing.stroke(50, 200, 50);
       processing.fill(60, 80, 90);
-      processing.rect(732, 489.5, 55, 55);
-    },
+      processing.rect(game.engine.objects.player.x, game.engine.objects.player.y, 55, 55);
+      // check for object hitting the wall
+      game.engine.objects.player.x != game.engine.objects.player.xMax;
+      game.engine.objects.player.y != game.engine.objects.player.yMax;
+
+  },
 
     WASD: function(processing)  {
-      if(game.engine.keys.W = true) {game.engine.objects.player.y + 100};
-
+// copy for all 4 keys
     },
 
     clearScreen: function(processing) {
